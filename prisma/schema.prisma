@@ -28,6 +28,15 @@ model CreditCard {
   updatedAt   DateTime @updatedAt
 }
 
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum CardType {
   visa
   mastercard

@@ -12,7 +12,6 @@ interface SidebarLinkProps {
 
 const SidebarLink = ({ href, icon, label, isActive: forcedIsActive }: SidebarLinkProps) => {
   
-  // Use provided isActive prop if available, otherwise determine based on pathname
   const isActive = false;
 
   return (

@@ -1,10 +1,8 @@
-// app/api/credit-cards/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET a single credit card by ID
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -33,7 +31,6 @@ export async function GET(
   }
 }
 
-// PUT update a credit card
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -65,7 +62,6 @@ export async function PUT(
   }
 }
 
-// DELETE a credit card
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }

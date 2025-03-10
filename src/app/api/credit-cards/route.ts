@@ -1,13 +1,49 @@
-// app/api/credit-cards/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { CardType, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET all credit cards
-export async function GET() {
+type CreditCardResponse = {
+  id: string;
+  cardName: string;
+  cardNumber: string;
+  cardHolder: string;
+  expiryDate: string;
+  cardType: CardType;
+  limit: string;
+  balance: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const creditCards = await prisma.creditCard.findMany();
+    const url = new URL(request.url);
+    
+    const createdBefore = url.searchParams.get('createdBefore');
+    const createdAfter = url.searchParams.get('createdAfter');
+    
+    let where: { createdAt?: { lt?: Date; gt?: Date } } = {};
+    
+    if (createdBefore || createdAfter) {
+      where.createdAt = {};
+      
+      if (createdBefore) {
+        where.createdAt.lt = new Date(createdBefore); 
+      }
+      
+      if (createdAfter) {
+        where.createdAt.gt = new Date(createdAfter); 
+      }
+    }
+    
+    const creditCards = await prisma.creditCard.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc' 
+      }
+    });
+    
     return NextResponse.json(creditCards);
   } catch (error) {
     console.error("Failed to fetch credit cards:", error);
@@ -17,8 +53,6 @@ export async function GET() {
     );
   }
 }
-
-// POST create a new credit card
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();

@@ -23,9 +23,7 @@ const StatCard = ({
       "bg-white rounded-3xl p-5 flex items-center gap-5 shadow-sm w-full justify-center",
       "transition-all duration-300 hover:shadow-md hover:scale-105"
     )}>
-      {/* Icon & Text Section */}
       <div className="flex gap-4 items-center">
-        {/* Icon Circle */}
         <div className={cn(
           "w-16 h-16 rounded-full flex items-center justify-center shrink-0 transition-all duration-300",
           bgColor,
@@ -36,7 +34,6 @@ const StatCard = ({
           </span>
         </div>
 
-        {/* Text Section */}
         <div className="flex flex-col justify-center">
           <span className="text-[#718EBF] text-[14px] font-normal">{title}</span>
           <h3 className="text-[25px] font-semibold text-[#232323]">{value}</h3>

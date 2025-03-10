@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Table,
   TableBody,
@@ -7,49 +7,47 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit, Trash2, Plus, CreditCard, RefreshCw } from "lucide-react";
+import { Edit, Trash2, Plus, CreditCard as CreditCardIcon, RefreshCw, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchCreditCards, deleteCreditCard } from "@/services/creditCardService";
-import { CardType } from "@prisma/client";
+import { Input } from "@/components/ui/input";
+import { $Enums, CardType, CreditCard } from "@prisma/client";
 import AddCreditCardModal from './AddTransactionModal';
+import { 
+  useCreditCards, 
+  useDeleteCreditCard, 
+  CreditCardFilters 
+} from "@/services/creditCardService";
 
-interface CreditCard {
-  id: string;
-  cardName: string;
-  cardNumber: string;
-  cardHolder: string;
-  expiryDate: string;
-  cardType: CardType;
-  limit: string;
-  balance: string;
+interface LocalCreditCardFilters {
+  createdAfter?: string;
+  createdBefore?: string;
 }
 
 const CreditCardTable: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
-  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [createdAfter, setCreatedAfter] = useState("");
+  const [createdBefore, setCreatedBefore] = useState("");
+  const [isFiltering, setIsFiltering] = useState(false);
 
-  // Load credit cards when component mounts
-  useEffect(() => {
-    loadCreditCards();
-  }, []);
-
-  const loadCreditCards = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const cards = await fetchCreditCards();
-      setCreditCards(cards);
-    } catch (err) {
-      console.error('Error fetching credit cards:', err);
-      setError('Failed to load credit cards');
-    } finally {
-      setLoading(false);
-    }
+  const getApiFilters = (): CreditCardFilters | undefined => {
+    if (!isFiltering) return undefined;
+    
+    const filters: CreditCardFilters = {};
+    if (createdAfter) filters.expiryAfter = createdAfter;
+    if (createdBefore) filters.expiryBefore = createdBefore;
+    return Object.keys(filters).length ? filters : undefined;
   };
+
+  const { 
+    data: creditCards = [], 
+    isLoading, 
+    isError, 
+    error, 
+    refetch 
+  } = useCreditCards(getApiFilters());
+  
+  const deleteMutation = useDeleteCreditCard();
 
   const handleEditCard = (card: CreditCard) => {
     setEditingCard(card);
@@ -58,16 +56,11 @@ const CreditCardTable: React.FC = () => {
 
   const handleDeleteCard = async (id: string) => {
     if (confirm('Are you sure you want to delete this card?')) {
-      setDeleteLoading(id);
       try {
-        await deleteCreditCard(id);
-        // Remove card from state after successful deletion
-        setCreditCards(prevCards => prevCards.filter(card => card.id !== id));
+        await deleteMutation.mutateAsync(id);
       } catch (err) {
         console.error('Error deleting credit card:', err);
         alert('Failed to delete card. Please try again.');
-      } finally {
-        setDeleteLoading(null);
       }
     }
   };
@@ -83,8 +76,16 @@ const CreditCardTable: React.FC = () => {
   };
 
   const handleModalSuccess = () => {
-    // Reload the cards after a successful add/edit
-    loadCreditCards();
+  };
+
+  const applyDateFilter = () => {
+    setIsFiltering(true);
+  };
+
+  const clearFilters = () => {
+    setCreatedAfter("");
+    setCreatedBefore("");
+    setIsFiltering(false);
   };
 
   const getCardTypeIcon = (cardType: CardType) => {
@@ -98,8 +99,13 @@ const CreditCardTable: React.FC = () => {
       case 'discover':
         return <span className="font-semibold text-purple-600">DISC</span>;
       default:
-        return <CreditCard className="h-4 w-4" />;
+        return <CreditCardIcon className="h-4 w-4" />;
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
   return (
@@ -108,12 +114,12 @@ const CreditCardTable: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-800 mb-4 lg:mb-0">My Credit Cards</h2>
         <div className="flex items-center gap-2">
           <Button 
-            onClick={loadCreditCards}
+            onClick={() => refetch()}
             variant="outline"
             className="flex items-center gap-1"
-            disabled={loading}
+            disabled={isLoading}
           >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
             Refresh
           </Button>
           <Button 
@@ -126,16 +132,69 @@ const CreditCardTable: React.FC = () => {
         </div>
       </div>
       
-      {error && (
+      <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-medium text-gray-700">Filter by Creation Date</h3>
+          {isFiltering && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearFilters}
+              className="text-gray-500 text-xs"
+            >
+              Clear Filters
+            </Button>
+          )}
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label htmlFor="createdAfter" className="block text-xs text-gray-500 mb-1">From</label>
+            <Input 
+              id="createdAfter"
+              type="date" 
+              value={createdAfter} 
+              onChange={(e) => setCreatedAfter(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="createdBefore" className="block text-xs text-gray-500 mb-1">To</label>
+            <Input 
+              id="createdBefore"
+              type="date" 
+              value={createdBefore} 
+              onChange={(e) => setCreatedBefore(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex items-end">
+            <Button
+              onClick={applyDateFilter}
+              variant="outline"
+              className="flex items-center gap-1"
+              disabled={isLoading || (!createdAfter && !createdBefore)}
+            >
+              {isLoading ? (
+                <RefreshCw size={16} className="animate-spin" />
+              ) : (
+                <Filter size={16} />
+              )}
+              Apply Filter
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {isError && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md flex items-center justify-between">
-          <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={loadCreditCards}>
+          <span>{(error as Error)?.message || 'Failed to load credit cards'}</span>
+          <Button variant="ghost" size="sm" onClick={() => refetch()}>
             Try Again
           </Button>
         </div>
       )}
       
-      {loading && !error ? (
+      {isLoading && !isError ? (
         <div className="flex justify-center items-center py-10">
           <div className="animate-spin mr-2">
             <RefreshCw size={20} />
@@ -144,14 +203,29 @@ const CreditCardTable: React.FC = () => {
         </div>
       ) : creditCards.length === 0 ? (
         <div className="text-center py-10 border border-dashed rounded-lg">
-          <CreditCard size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 mb-4">You haven't added any credit cards yet</p>
-          <Button 
-            onClick={handleAddNewCard}
-            variant="outline"
-          >
-            Add Your First Card
-          </Button>
+          {!isFiltering ? (
+            <>
+              <CreditCardIcon size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-4">You haven't added any credit cards yet</p>
+              <Button 
+                onClick={handleAddNewCard}
+                variant="outline"
+              >
+                Add Your First Card
+              </Button>
+            </>
+          ) : (
+            <>
+              <Filter size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-4">No cards match the selected date filters</p>
+              <Button 
+                onClick={clearFilters}
+                variant="outline"
+              >
+                Clear Filters
+              </Button>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -162,13 +236,14 @@ const CreditCardTable: React.FC = () => {
                 <TableHead className="text-gray-500 font-medium">Card Name</TableHead>
                 <TableHead className="text-gray-500 font-medium">Card Number</TableHead>
                 <TableHead className="text-gray-500 font-medium">Expiry</TableHead>
+                <TableHead className="text-gray-500 font-medium">Added Date</TableHead>
                 <TableHead className="text-gray-500 font-medium">Limit</TableHead>
                 <TableHead className="text-gray-500 font-medium">Balance</TableHead>
                 <TableHead className="text-gray-500 font-medium text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {creditCards.map((card) => (
+              {creditCards.map((card: { id: string; cardType: $Enums.CardType; cardName: string; cardNumber: string; expiryDate: string; createdAt: Date; limit: string; balance: string; cardHolder: string; updatedAt: Date; }) => (
                 <TableRow key={card.id} className="hover:bg-gray-50">
                   <TableCell className="font-medium text-black">
                     {getCardTypeIcon(card.cardType)}
@@ -176,6 +251,7 @@ const CreditCardTable: React.FC = () => {
                   <TableCell className="text-black">{card.cardName}</TableCell>
                   <TableCell className="text-black font-mono">{card.cardNumber}</TableCell>
                   <TableCell className="text-black">{card.expiryDate}</TableCell>
+                  <TableCell className="text-black">{formatDate(card.createdAt.toString())}</TableCell>
                   <TableCell className="text-black">{card.limit}</TableCell>
                   <TableCell className="text-black">{card.balance}</TableCell>
                   <TableCell className="text-right">
@@ -193,9 +269,9 @@ const CreditCardTable: React.FC = () => {
                         size="sm" 
                         className="h-8 w-8 p-0"
                         onClick={() => handleDeleteCard(card.id)}
-                        disabled={deleteLoading === card.id}
+                        disabled={deleteMutation.isPending && deleteMutation.variables === card.id}
                       >
-                        {deleteLoading === card.id ? (
+                        {deleteMutation.isPending && deleteMutation.variables === card.id ? (
                           <RefreshCw className="h-4 w-4 text-red-600 animate-spin" />
                         ) : (
                           <Trash2 className="h-4 w-4 text-red-600" />
@@ -210,7 +286,6 @@ const CreditCardTable: React.FC = () => {
         </div>
       )}
 
-      {/* Render the add/edit modal */}
       <AddCreditCardModal 
         isOpen={isAddModalOpen}
         onClose={handleCloseModal}

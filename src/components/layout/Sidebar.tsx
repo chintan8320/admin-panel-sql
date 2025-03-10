@@ -14,14 +14,12 @@ import { Home } from '@/lib/assets/home';
 const Sidebar = () => {
   return (
     <aside className="w-64 bg-white h-screen sticky top-0 border-r border-gray-100 py-8 flex flex-col">
-      {/* Logo */}
       <div className="pr-4 pl-10 mb-8">
         <div className="flex items-center gap-2 text-bank-blue">
           <MainLogo />
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="pr-3 flex-1">
         <div className="space-y-1">
           <SidebarLink href="/" icon={<Home />} label="Dashboard" />

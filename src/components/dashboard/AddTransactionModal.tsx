@@ -61,15 +61,14 @@ const AddCreditCardModal: React.FC<AddCreditCardModalProps> = ({
     if (creditCard) {
       setFormData({
         cardName: creditCard.cardName,
-        cardNumber: creditCard.cardNumber.replace(/[•\s]/g, ''), // Remove dots and spaces
+        cardNumber: creditCard.cardNumber.replace(/[•\s]/g, ''), 
         cardHolder: creditCard.cardHolder,
         expiryDate: creditCard.expiryDate,
         cardType: creditCard.cardType,
-        limit: creditCard.limit.replace(/[$,]/g, ''), // Remove $ and commas
-        balance: creditCard.balance.replace(/[$,]/g, ''), // Remove $ and commas
+        limit: creditCard.limit.replace(/[$,]/g, ''), 
+        balance: creditCard.balance.replace(/[$,]/g, ''), 
       });
     } else {
-      // Reset form when adding new card
       setFormData({
         cardName: '',
         cardNumber: '',
@@ -80,19 +79,16 @@ const AddCreditCardModal: React.FC<AddCreditCardModalProps> = ({
         balance: '',
       });
     }
-    // Reset error state when modal opens/closes
     setError(null);
   }, [creditCard, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Special formatting for card number (4 digits groups)
     if (name === 'cardNumber') {
       const digitsOnly = value.replace(/\D/g, '').slice(0, 16);
       setFormData(prev => ({ ...prev, [name]: digitsOnly }));
     }
-    // Special formatting for expiry date (MM/YY)
     else if (name === 'expiryDate') {
       const digitsOnly = value.replace(/\D/g, '').slice(0, 4);
       if (digitsOnly.length > 2) {
@@ -111,7 +107,6 @@ const AddCreditCardModal: React.FC<AddCreditCardModalProps> = ({
   };
 
   const formatCardNumber = (cardNumber: string) => {
-    // Mask all but last 4 digits for display
     if (cardNumber.length >= 4) {
       return `•••• •••• •••• ${cardNumber.slice(-4)}`;
     }
@@ -124,12 +119,10 @@ const AddCreditCardModal: React.FC<AddCreditCardModalProps> = ({
     setError(null);
     
     try {
-      // Format values for storage/display
       const formattedCardNumber = formatCardNumber(formData.cardNumber || '');
       const formattedLimit = `$${parseFloat(formData.limit || '0').toLocaleString()}`;
       const formattedBalance = `$${parseFloat(formData.balance || '0').toLocaleString()}`;
       
-      // Create complete card object
       const cardData = {
         cardName: formData.cardName || '',
         cardNumber: formattedCardNumber,
@@ -141,16 +134,12 @@ const AddCreditCardModal: React.FC<AddCreditCardModalProps> = ({
       };
       
       if (isEditMode && creditCard) {
-        // Update existing card
         await updateCreditCard(creditCard.id, cardData);
       } else {
-        // Create new card
         await createCreditCard(cardData);
       }
       
-      // Call success callback to refresh the card list
       onSuccess();
-      // Close the modal
       onClose();
     } catch (err) {
       console.error('Error saving credit card:', err);

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import AuthWrapper from "@/components/wrapper/authWrapper";
+import ReactQueryProvider from "@/providers/reactQueryProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -22,7 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
-        {children}
+        <AuthWrapper>
+        <ReactQueryProvider>
+          {children}
+        </ReactQueryProvider>
+        </AuthWrapper>
       </body>
     </html>
   );
